@@ -1,0 +1,311 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Upload Reel</title>
+<link rel="shortcut icon" href="{% static 'images/weekfav.jpeg' %}" type="image/x-icon">
+
+<style>
+body {
+    margin: 0;
+    font-family: "Poppins", sans-serif;
+    background: #f0f2f8;
+}
+
+.container {
+    max-width: 450px;
+    margin: 40px auto;
+    padding: 25px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+}
+
+h3 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+/* Preview Box */
+.preview-box {
+    width: 100%;
+    height: 380px;
+    background: #f9fbff;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    border: 2px dashed #0095F6;
+    position: relative;
+}
+
+.preview-box video,
+.preview-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.upload-btn {
+    width: 70px;
+    height: 70px;
+    background: #0095F6;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+}
+
+.upload-btn span {
+    font-size: 38px;
+    color: white;
+    font-weight: bold;
+}
+
+#id_reel {
+    display: none;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+.form-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+textarea, input[type="text"] {
+    width: 100%;
+    min-height: 100px;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+    font-family: inherit;
+}
+
+/* KEEP SAME LOOK */
+.custom-dropdown {
+    position: relative;
+    width: 100%;
+}
+
+.dropdown-selected {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    background: white;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.dropdown-list {
+    position: absolute;
+    width: 100%;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    margin-top: 5px;
+    display: none;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.dropdown-item {
+    padding: 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+}
+.dropdown-item:last-child {
+    border-bottom: none;
+}
+.dropdown-item:hover {
+    background: #f0f6ff;
+}
+
+.line1 {
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.line2 {
+    font-size: 12px;
+    color: #666;
+    margin-top: 4px;
+}
+
+button[type="submit"] {
+    width: 100%;
+    padding: 14px;
+    background: #0095F6;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    margin-top: 10px;
+}
+
+button[type="submit"]:hover {
+    background: #007bd1;
+}
+
+p:has(#id_reel) {
+    display: none !important;
+}
+
+.menu-btn{
+    color: var(--text-primary);
+    margin-bottom:30px;
+}
+</style>
+
+</head>
+
+<body>
+
+{% include 'NavBar.html' %}
+
+<div class="container">
+
+<h3>Create Reel</h3>
+
+<!-- Preview -->
+<div class="preview-box" id="preview">
+    <label for="id_reel" class="upload-btn">
+        <span>+</span>
+    </label>
+</div>
+
+<form method="POST" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <div style="display: none;">
+        {{ f.reel }}
+    </div>
+
+    <div class="form-group">
+        <label>Write about this video</label>
+        {{ f.description }}
+    </div>
+
+    <!-- ✅ CUSTOM PROPERTY SELECT -->
+    <div class="form-group">
+        <label>Select Property</label>
+
+        <div class="custom-dropdown" id="dropdown">
+
+            <div class="dropdown-selected" id="selectedItem">
+                -- Select Property --
+            </div>
+
+            <div class="dropdown-list" id="dropdownList">
+                {% for p in properties %}
+                <div class="dropdown-item"
+                    data-id="{{ p.id }}"
+                    data-name="{{ p.projectName }}"
+                    data-rera="{% if p.reraApproved %}DTCP Approved{% else %}Not Approved{% endif %}"
+                    data-units="{{ p.units }}"
+                    data-type="{{ p.type }}"
+                    data-extent="{{ p.extent }}"
+                    data-facing="{{ p.facing }}"
+                >
+                    <div class="line1">
+                        {{ p.projectName }} - {% if p.reraApproved %}DTCP Approved{% else %}Not Approved{% endif %}
+                    </div>
+                    <div class="line2">
+                        {{ p.units }} Units | {{ p.type }} | {{ p.extent }} Sq.ft | {{ p.facing }}
+                    </div>
+                </div>
+                {% empty %}
+                <div class="dropdown-item" style="color:#888; cursor:default;">
+                    No properties available.
+                </div>
+                {% endfor %}
+            </div>
+
+        </div>
+
+        <!-- Hidden input for backend -->
+        <input type="hidden" name="propertyId" id="propertyInput">
+
+    </div>
+
+    <button type="submit">Post Reel</button>
+</form>
+
+</div>
+
+{% include 'footer.html' %}
+
+<script>
+const input = document.getElementById("id_reel");
+const preview = document.getElementById("preview");
+
+/* Preview */
+input.addEventListener("change", () => {
+    const file = input.files[0];
+    if (!file) return;
+
+    const url = URL.createObjectURL(file);
+    preview.innerHTML = "";
+
+    if (file.type.startsWith("video")) {
+        const video = document.createElement("video");
+        video.src = url;
+        video.controls = true;
+        video.autoplay = true;
+        video.muted = true; // good practice for autoplay
+        preview.appendChild(video);
+    } else if (file.type.startsWith("image")) {
+        const img = document.createElement("img");
+        img.src = url;
+        preview.appendChild(img);
+    }
+});
+
+/* Custom Dropdown */
+const selected = document.getElementById("selectedItem");
+const list = document.getElementById("dropdownList");
+const inputHidden = document.getElementById("propertyInput");
+
+selected.addEventListener("click", () => {
+    list.style.display = list.style.display === "block" ? "none" : "block";
+});
+
+document.querySelectorAll(".dropdown-item").forEach(item => {
+    if(!item.dataset.id) return; // skip empty
+    item.addEventListener("click", () => {
+
+        selected.innerHTML = `
+            <div class="line1">${item.dataset.name} - ${item.dataset.rera}</div>
+            <div class="line2">
+                ${item.dataset.units} Units | ${item.dataset.type} | ${item.dataset.extent} Sq.ft | ${item.dataset.facing}
+            </div>
+        `;
+
+        inputHidden.value = item.dataset.id;
+        list.style.display = "none";
+    });
+});
+
+/* Close when clicking outside */
+document.addEventListener("click", function(e) {
+    if (!document.getElementById("dropdown").contains(e.target)) {
+        list.style.display = "none";
+    }
+});
+</script>
+
+</body>
+</html>
