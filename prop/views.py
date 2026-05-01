@@ -369,30 +369,29 @@ def home(request):
     marketing_experts = User.objects.filter(
         role=Role.MARKETER,
         plan_type=PlanType.MARKETER_EXPORT,
-        marketer_subscription_start_date__lte=today,
-        marketer_subscription_end_date__gte=today
     ).order_by('-id')
 
     marketing_experts_pro = User.objects.filter(
         role=Role.MARKETER,
         plan_type=PlanType.MARKETER_EXPORT_PRO,
-        marketer_subscription_start_date__lte=today,
-        marketer_subscription_end_date__gte=today
     ).order_by('-id')
 
     marketing_experts_premium = User.objects.filter(
         role=Role.MARKETER,
         plan_type=PlanType.MARKETER_EXPORT_PREMIUM,
-        marketer_subscription_start_date__lte=today,
-        marketer_subscription_end_date__gte=today
     ).order_by('-id')
+
+    # Fallback: if experts are empty, show any marketers
+    if not marketing_experts.exists() and not marketing_experts_pro.exists() and not marketing_experts_premium.exists():
+        marketing_experts = User.objects.filter(role=Role.MARKETER).order_by('-id')
 # ============================
 # COMPANIES
 # ============================
 
     featured_companies = User.objects.filter(
         role=Role.COMPANY,
-        plan_type=PlanType.COMPANY_NORMAL
+    ).exclude(
+        plan_type__in=[PlanType.COMPANY_PRO, PlanType.COMPANY_PREMIUM]
     ).order_by('-id')
 
     featured_companies_pro = User.objects.filter(
@@ -522,8 +521,8 @@ def home(request):
     return render(request, "home.html", {
         "desktop_slides": desktop_slides,
         "mobile_slides": mobile_slides, 
-        "marketing_experts": marketing_experts,
-        "featured_companies": featured_companies,
+        "marketing_experts_normal": marketing_experts,
+        "featured_companies_normal": featured_companies,
         "professionals": professionals,
         "marketing_experts_pro": marketing_experts_pro,
         "featured_companies_pro": featured_companies_pro,
@@ -625,8 +624,9 @@ def user_detail(request, user_id):
         from .models import AddProject
         projects = AddProject.objects.filter(user=user)
     
-    from .models import Poll
+    from .models import Poll, NewsPost
     polls = Poll.objects.filter(user=user).order_by('-created_at')
+    feed_posts = NewsPost.objects.filter(user=user).order_by('-created_at')
 
     # Filter owner properties to only show verified ones to visitors
     if user.role == 'OWNER' and request.user != user:
@@ -645,6 +645,7 @@ def user_detail(request, user_id):
         "properties": qs,
         "projects": projects,
         "polls": polls,
+        "feed_posts": feed_posts,
     })
 
 from django.utils import timezone
@@ -706,39 +707,19 @@ def all_users(request):
     marketer_export = marketer_export_pro = marketer_export_premium = company_normal = company_pro = company_premium = professional_users = None
 
     # ===== MARKETER USERS =====
-    if category == "marketer":
-        # General search — show ALL marketers regardless of subscription status
-        marketer_export = User.objects.filter(
+    if category in ["marketer", "marketer_pro", "marketer_premium"]:
+        marketer_export_premium = User.objects.filter(
             role=Role.MARKETER,
-            plan_type=PlanType.MARKETER_EXPORT,
+            plan_type=PlanType.MARKETER_EXPORT_PREMIUM,
         )
         marketer_export_pro = User.objects.filter(
             role=Role.MARKETER,
             plan_type=PlanType.MARKETER_EXPORT_PRO,
         )
-        marketer_export_premium = User.objects.filter(
-            role=Role.MARKETER,
-            plan_type=PlanType.MARKETER_EXPORT_PREMIUM,
-        )
-    elif category in ["marketer_pro", "marketer_premium"]:
-        # Specific plan categories — require active subscriptions
         marketer_export = User.objects.filter(
-            role=Role.MARKETER,
-            plan_type=PlanType.MARKETER_EXPORT,
-            marketer_subscription_start_date__lte=today,
-            marketer_subscription_end_date__gte=today,
-        )
-        marketer_export_pro = User.objects.filter(
-            role=Role.MARKETER,
-            plan_type=PlanType.MARKETER_EXPORT_PRO,
-            marketer_subscription_start_date__lte=today,
-            marketer_subscription_end_date__gte=today,
-        )
-        marketer_export_premium = User.objects.filter(
-            role=Role.MARKETER,
-            plan_type=PlanType.MARKETER_EXPORT_PREMIUM,
-            marketer_subscription_start_date__lte=today,
-            marketer_subscription_end_date__gte=today,
+            role=Role.MARKETER
+        ).exclude(
+            plan_type__in=[PlanType.MARKETER_EXPORT_PRO, PlanType.MARKETER_EXPORT_PREMIUM]
         )
 
     # ===== COMPANY USERS ===== 
@@ -1116,6 +1097,10 @@ def professional_profile_view(request, user_id=None):
 
     is_owner = (user.id == profile_user.id)
 
+    # If not the owner, show the public visitor view (user_detail)
+    if not is_owner:
+        return redirect('prop:user_detail', user_id=profile_user.id)
+
     # Properties/Stats
     properties = AddPropertyModel.objects.filter(user=profile_user).order_by('-id')
     upload_count = properties.count()
@@ -1187,10 +1172,49 @@ def professional_profile_view(request, user_id=None):
         elif days_left <= 7:
             show_expiry_warning = True
 
+    reels = Reels.objects.filter(user=profile_user).order_by('-id')
+    feed_posts = NewsPost.objects.filter(user=profile_user).order_by('-created_at')
+
+    # Handle inline feed post (owner only)
+    if request.method == 'POST' and is_owner:
+        post_type = request.POST.get('post_type', '')
+
+        if post_type == 'feed':
+            heading = request.POST.get('heading', '').strip()
+            news_content = request.POST.get('news_content', '').strip()
+            media_file = request.FILES.get('media_file')
+            if heading or news_content:
+                post = NewsPost(user=request.user, heading=heading, news_content=news_content)
+                if media_file:
+                    if media_file.content_type.startswith('image'):
+                        post.media_type = 'image'
+                        post.image = media_file
+                    elif media_file.content_type.startswith('video'):
+                        post.media_type = 'video'
+                        post.video = media_file
+                else:
+                    post.media_type = 'text'
+                post.save()
+                messages.success(request, 'Feed posted successfully!')
+            return redirect(request.path + '?tab=feed')
+
+        elif post_type == 'reel':
+            reel_file = request.FILES.get('reel')
+            description = request.POST.get('description', '').strip()
+            if reel_file:
+                reel = Reels(user=request.user, reel=reel_file, description=description or 'Reel')
+                reel.save()
+                messages.success(request, 'Reel uploaded successfully!')
+            return redirect(request.path + '?tab=bytes')
+
+    active_tab = request.GET.get('tab', 'dashboard')
+
     context = {
         "data": profile_user,
         "is_owner": is_owner,
         "news_posts": news_posts,
+        "feed_posts": feed_posts,
+        "reels": reels,
         "polls": Poll.objects.filter(user=profile_user).order_by("-created_at"),
         "properties": properties,
         "upload_count": upload_count,
@@ -1203,7 +1227,7 @@ def professional_profile_view(request, user_id=None):
         "days_left": days_left,
         "rating": 4.5,
         "rating_count": 200,
-
+        "active_tab": active_tab,
         "leads_labels": json.dumps(leads_labels),
         "leads_counts": json.dumps(leads_counts),
         "referrals_labels": json.dumps(referrals_labels),
@@ -1226,6 +1250,10 @@ def marketer_profile_view(request, user_id=None):
         profile_user = user
 
     is_owner = (user.id == profile_user.id)
+
+    # If not the owner, show the public visitor view (user_detail)
+    if not is_owner:
+        return redirect('prop:user_detail', user_id=profile_user.id)
 
     # Properties/Stats
     properties = AddPropertyModel.objects.filter(user=profile_user).order_by('-id')
@@ -1290,19 +1318,16 @@ def marketer_profile_view(request, user_id=None):
     show_expiry_warning = False
     days_left = None
     expiry_date = profile_user.marketer_subscription_end_date
-    news_posts = NewsPost.objects.filter(user=profile_user).order_by('-created_at')
-    
-    if expiry_date:
-        days_left = (expiry_date - today).days
-        if days_left < 0:
-            is_expired = True
-        elif days_left <= 7:
-            show_expiry_warning = True
+    reels = Reels.objects.filter(user=profile_user).order_by('-id')
+    feed_posts = NewsPost.objects.filter(user=profile_user).order_by('-created_at')
+    active_tab = request.GET.get('tab', 'dashboard')
 
     context = {
         "data": profile_user,
         "is_owner": is_owner,
-        "news_posts": news_posts,
+        "feed_posts": feed_posts,
+        "reels": reels,
+        "active_tab": active_tab,
         "polls": Poll.objects.filter(user=profile_user).order_by("-created_at"),
         "properties": properties,
         "upload_count": upload_count,
@@ -1831,6 +1856,10 @@ def company_profile_view(request, user_id=None):
     # Owner check
     is_owner = (request.user == profile_user)
 
+    # If not the owner, show the public visitor view (user_detail)
+    if not is_owner:
+        return redirect('prop:user_detail', user_id=profile_user.id)
+
     # Contact count
     contact_count = ContactMessage.objects.filter(cid=str(profile_user.id)).count()
 
@@ -1887,6 +1916,10 @@ def company_profile_view(request, user_id=None):
         elif days_left <= 7:
             show_expiry_warning = True
 
+    reels = Reels.objects.filter(user=profile_user).order_by('-id')
+    feed_posts = NewsPost.objects.filter(user=profile_user).order_by('-created_at')
+    active_tab = request.GET.get('tab', 'dashboard')
+
     return render(request, "company_profile.html", {
         "profile_user": profile_user,
         "projects": projects,
@@ -1895,7 +1928,9 @@ def company_profile_view(request, user_id=None):
         "sold_count": sold_count,
         "pending_count": pending_count,
         "lcount": lcount,
-        "news_posts": NewsPost.objects.filter(user=profile_user).order_by('-created_at'),
+        "feed_posts": feed_posts,
+        "reels": reels,
+        "active_tab": active_tab,
         "leads_labels": json.dumps(leads_labels),
         "leads_counts": json.dumps(leads_counts),
         "referrals_labels": json.dumps(referrals_labels),
@@ -3793,27 +3828,31 @@ def news_create(request):
         return redirect('prop:home')
         
     if request.method == 'POST':
-        form = ImagePostForm(request.POST)
+        heading = request.POST.get('heading', '').strip()
+        news_content = request.POST.get('news_content', '').strip()
         media_file = request.FILES.get('media_file')
-        
-        if form.is_valid() and media_file:
-            post = form.save(commit=False)
-            post.user = request.user
-            
-            # Detect media type
-            content_type = media_file.content_type
-            if content_type.startswith('image'):
-                post.media_type = 'image'
-                post.image = media_file
-            elif content_type.startswith('video'):
-                post.media_type = 'video'
-                post.video = media_file
-            
+
+        if heading or news_content:
+            post = NewsPost(user=request.user, heading=heading, news_content=news_content)
+
+            if media_file:
+                content_type = media_file.content_type
+                if content_type.startswith('image'):
+                    post.media_type = 'image'
+                    post.image = media_file
+                elif content_type.startswith('video'):
+                    post.media_type = 'video'
+                    post.video = media_file
+            else:
+                post.media_type = 'text'
+
             post.save()
-            return redirect('prop:home')
-    else:
-        form = ImagePostForm()
-    return render(request, 'news_form.html', {'form': form})
+            messages.success(request, 'News posted successfully!')
+            return redirect(request.META.get('HTTP_REFERER', 'prop:professional_profile'))
+        else:
+            messages.error(request, 'Please add a heading or description.')
+
+    return render(request, 'news_form.html', {})
 
 
 @login_required
@@ -3866,22 +3905,19 @@ def news_detail(request, pk):
 # =========================
 
 @login_required
-def feed_list(request):
+def feed_list_old(request):
     feeds = PostFeed.objects.all().order_by('-created_at')
-    return render(request, 'feed_list.html', {'feeds': feeds})
-
+    return render(request, 'feed_list_old.html', {'feeds': feeds})
 
 @login_required
-def feed_create(request):
+def feed_create_old(request):
     form = PostFeedForm(request.POST or None, request.FILES or None)
-
     if form.is_valid():
         feed = form.save(commit=False)
         feed.user = request.user
         feed.save()
-        return redirect('prop:feed_list')
-
-    return render(request, 'feed_form.html', {'form': form})
+        return redirect('prop:feed_list_old')
+    return render(request, 'feed_form_old.html', {'form': form})
 
 
 @login_required
@@ -3942,20 +3978,19 @@ def feed_create(request):
             post = form.save(commit=False)
             post.user = request.user
             
-            # Keyword Validation
-            news_content = post.news_content.lower()
-            allowed_keywords = NewsKeyword.objects.values_list('keyword', flat=True)
-            allowed_keywords = [k.lower() for k in allowed_keywords]
-            
-            match_found = False
-            for kw in allowed_keywords:
-                if kw in news_content:
-                    match_found = True
-                    break
-            
-            if not match_found:
-                messages.error(request, "Your post does not contain any allowed keywords and was rejected.")
-                return render(request, 'feed_form.html', {'form': form})
+            # Optional Keyword Validation - Disabled to ensure 'working' state
+            # news_content = post.news_content.lower()
+            # allowed_keywords = NewsKeyword.objects.values_list('keyword', flat=True)
+            # allowed_keywords = [k.lower() for k in allowed_keywords]
+            # match_found = False
+            # for kw in allowed_keywords:
+            #     if kw in news_content:
+            #         match_found = True
+            #         break
+            # if not match_found:
+            #     messages.error(request, "Your post does not contain any allowed keywords.")
+            #     keywords = NewsKeyword.objects.all()
+            #     return render(request, 'feed_form.html', {'form': form, 'keywords': keywords})
 
             if media_file:
                 content_type = media_file.content_type

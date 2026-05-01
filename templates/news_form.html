@@ -21,7 +21,7 @@
             <label class="upload-box" id="drop-zone">
                 <span><i class="bi bi-cloud-arrow-up"></i> +</span>
                 <p>Click to upload Image or Video (Max 30s)</p>
-                <input type="file" name="media_file" id="media_file" accept="image/*,video/*" required>
+        <input type="file" name="media_file" id="media_file" accept="image/*,video/*">
             </label>
         </div>
 
@@ -30,11 +30,11 @@
 
         <!-- Heading -->
         <label>Heading</label>
-        {{ form.heading }}
+        <input type="text" name="heading" placeholder="Enter heading..." style="width:100%; padding:10px; border-radius:8px; border:1px solid #e2e8f0; margin-bottom:10px; font-family:inherit;">
 
         <!-- News Content -->
         <label>Description</label>
-        {{ form.news_content }}
+        <textarea name="news_content" placeholder="Write your update..." rows="4" style="width:100%; padding:10px; border-radius:8px; border:1px solid #e2e8f0; font-family:inherit;"></textarea>
 
         <button type="submit">Save Update</button>
     </form>
