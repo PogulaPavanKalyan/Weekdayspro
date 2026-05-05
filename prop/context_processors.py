@@ -15,10 +15,13 @@ def notification_counts(request):
         
         total_notification_count = unread_notifications_count # or include messages? User said "show notification count" for notifications button and "aside bar messages show count"
         
+        recent_notifications = Notification.objects.filter(user=request.user).order_by('-created_at')[:10]
+        
         return {
             'unread_notifications_count': unread_notifications_count,
             'unread_messages_count': unread_messages_count,
-            'total_notification_count': unread_notifications_count + unread_messages_count # Combined for the badge if needed
+            'total_notification_count': unread_notifications_count + unread_messages_count,
+            'recent_notifications': recent_notifications
         }
     return {
         'unread_notifications_count': 0,

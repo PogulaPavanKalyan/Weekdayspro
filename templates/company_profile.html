@@ -1,4 +1,4 @@
-{% load static %}
+﻿{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 
@@ -6,7 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ profile_user.company_name }} | Company Profile</title>
-    <link rel="shortcut icon" href="{% static 'images/weekfav.jpeg' %}" type="image/x-icon">
+    <link rel="shortcut icon" href="{% static 'images/fav-icon.png' %}" type="image/png">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -31,7 +31,7 @@
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
                 <div style="display: flex; gap: 20px; align-items: center;">
                     <div style="width: 80px; height: 80px; border-radius: 50%; background: #eee; overflow: hidden; display: flex; align-items: center; justify-content: center;">
-                        <img src="{% if profile_user.company_logo_path %}{{ profile_user.company_logo_path.url }}{% else %}{% static 'images/logo.jpg' %}{% endif %}" style="width: 100%; height: 100%; object-fit: cover;" alt="Logo">
+                        <img src="{% if profile_user.company_logo_path %}{{ profile_user.company_logo_path.url }}{% else %}{% static 'images/fav-icon.png' %}{% endif %}" style="width: 100%; height: 100%; object-fit: cover;" alt="Logo">
                     </div>
                     <div>
                         <h1 style="font-size: 24px; font-weight: 700; color: var(--primary); margin: 0; display: flex; align-items: center; gap: 5px;">
@@ -234,7 +234,7 @@
             {% for project in projects %}
             <div class="project-item">
                 <div style="width: 80px; height: 80px; border-radius: 15px; overflow: hidden; background: #eee;">
-                    <img src="{% if project.image %}{{ project.image.url }}{% else %}{% static 'images/logo.jpg' %}{% endif %}" style="width: 100%; height: 100%; object-fit: cover;">
+                    <img src="{% if project.image %}{{ project.image.url }}{% else %}{% static 'images/fav-icon.png' %}{% endif %}" style="width: 100%; height: 100%; object-fit: cover;">
                 </div>
                 <div style="flex: 1;">
                     <h4 style="font-size: 15px; margin-bottom: 4px;">{{ project.project_name }}</h4>

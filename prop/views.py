@@ -445,19 +445,20 @@ def home(request):
     owners = owners[:8]
 
     # ============================
-    # PROJECTS (NO SUBSCRIPTION FILTER)
     # ============================
-    normal_projects = AddProject.objects.filter(
-        plan_type=PlanType.COMPANY_NORMAL
-    ).order_by('-id')[:4]
+    # PROJECTS (ORDERED BY PLAN)
+    # ============================
+    premium_projects = AddProject.objects.filter(plan_type=PlanType.COMPANY_PREMIUM).order_by('-id')[:4]
+    pro_projects = AddProject.objects.filter(plan_type=PlanType.COMPANY_PRO).order_by('-id')[:4]
+    normal_projects = AddProject.objects.filter(plan_type=PlanType.COMPANY_NORMAL).order_by('-id')[:4]
 
-    pro_projects = AddProject.objects.filter(
-        plan_type=PlanType.COMPANY_PRO
-    ).order_by('-id')[:4]
-
-    premium_projects = AddProject.objects.filter(
-        plan_type=PlanType.COMPANY_PREMIUM
-    ).order_by('-id')[:4]
+    # Fallback for Featured Projects section
+    if not pro_projects.exists():
+        pro_projects = AddProject.objects.exclude(plan_type=PlanType.COMPANY_PREMIUM).order_by('-id')[:4]
+    
+    # Fallback for Premium Projects section
+    if not premium_projects.exists():
+        premium_projects = AddProject.objects.all().order_by('-id')[:4]
 
     all_properties = AddPropertyModel.objects.exclude(user__role='OWNER', is_verified=False).order_by('-id')[:10]
     
@@ -2255,8 +2256,12 @@ def verify_property(request):
 
 # addproject-------
 def add_project(request):
-    if not request.user.is_authenticated or request.user.role != "COMPANY":
-        messages.error(request, "Only company users can add projects.")
+    if not request.user.is_authenticated:
+        messages.error(request, "Please login to add a project.")
+        return redirect("prop:login")
+        
+    if request.user.role != "COMPANY":
+        messages.error(request, f"Access denied. Only Builders (Company roles) can add projects. Your current role is: {request.user.role}")
         return redirect("prop:home")
 
     if request.method == "POST":
@@ -2270,6 +2275,7 @@ def add_project(request):
         available_sizes = request.POST.get("available_sizes")
         position = request.POST.get("position")
         construction_time = request.POST.get("construction_time")
+        estbalis_year = request.POST.get("estbalis_year")
 
         # ✅ FIXED nearby
         nearby_locations = request.POST.getlist("nearby_locations[]")
@@ -2285,40 +2291,66 @@ def add_project(request):
         total_project_area = request.POST.get("total_project_area")
         contact_info = request.POST.get("contact_info")
         pricing = request.POST.get("pricing")
+        
+        latitude = request.POST.get("latitude")
+        longitude = request.POST.get("longitude")
 
-        image = request.FILES.get("image")
+        # Get main image and other files
+        images = request.FILES.getlist("image")
         video = request.FILES.get("video")
-        document = request.FILES.get("document")
+        documents = request.FILES.getlist("document")
 
-        AddProject.objects.create(
-            user=request.user,
-            plan_type=request.user.plan_type,
+        try:
+            project = AddProject.objects.create(
+                user=request.user,
+                plan_type=request.user.plan_type,
+                project_name=project_name,
+                type_of_project=type_of_project,
+                project_address=project_address,
+                location_url=location_url,
+                latitude=float(latitude) if latitude and latitude.strip() else None,
+                longitude=float(longitude) if longitude and longitude.strip() else None,
+                number_of_units=number_of_units,
+                available_units=available_units,
+                nearby_locations=nearby_locations,
+                available_facing=available_facing,
+                available_sizes=available_sizes,
+                estbalis_year=int(estbalis_year) if estbalis_year and estbalis_year.strip() else None,
+                rera_approved=rera_approved,
+                select_amenities=amenities,
+                highlights=highlights,
+                type_of_approval=type_of_approval,
+                total_project_area=total_project_area,
+                contact_info=int(contact_info) if contact_info and contact_info.strip() else 0,
+                pricing=int(pricing) if pricing and pricing.strip() else 0,
+                position=position,
+                construction_time=construction_time,
+                image=images[0] if images else None,
+                video=video,
+                document=documents[0] if documents else None,
+            )
 
-            project_name=project_name,
-            type_of_project=type_of_project,
-            project_address=project_address,
-            location_url=location_url,
-            number_of_units=number_of_units,
-            available_units=available_units,
-            nearby_locations=nearby_locations,  # ✅ list stored
-            available_facing=available_facing,
-            available_sizes=available_sizes,
-            rera_approved=rera_approved,
-            select_amenities=amenities,
-            highlights=highlights,
-            type_of_approval=type_of_approval,
-            total_project_area=total_project_area,
-            contact_info=contact_info,
-            pricing=pricing,
-            position=position,
-            construction_time=construction_time,
-            image=image,
-            video=video,
-            document=document,
-        )
+            # ✅ Handle Extra Images
+            if len(images) > 1:
+                for img in images[1:]:
+                    ProjectImage.objects.create(project=project, image=img)
 
-        messages.success(request, "Project added successfully")
-        return redirect("prop:home")
+            # ✅ Handle Legal Documents
+            legal_doc_names = request.POST.getlist("legal_doc_name[]")
+            legal_doc_files = request.FILES.getlist("legal_doc_file[]")
+            
+            for i in range(min(len(legal_doc_names), len(legal_doc_files))):
+                ProjectLegalDocument.objects.create(
+                    project=project,
+                    name=legal_doc_names[i],
+                    file=legal_doc_files[i]
+                )
+
+            messages.success(request, f"Project '{project.project_name}' added successfully!")
+            return redirect("prop:project_detail", id=project.id)
+        except Exception as e:
+            messages.error(request, f"Error adding project: {str(e)}")
+            return redirect("prop:add_project")
 
     return render(request, "add_project.html")
     

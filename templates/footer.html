@@ -148,9 +148,26 @@
 .footer-bottom a:hover{
     opacity:0.95;
 }
- @media (max-width: 500px){
+ .footer {
+    display: none;
+}
+
+ @media (max-width: 768px){
     .footer{
-        display: none !important;
+        display: block !important;
+    }
+    .footer-main {
+        padding: 30px 15px;
+        gap: 20px;
+    }
+    .footer-section {
+        min-width: 100%;
+    }
+    .footer-bottom {
+        padding: 15px 20px;
+        text-align: center;
+        flex-direction: column;
+        gap: 10px;
     }
 }
 
@@ -190,9 +207,9 @@
 
           <h3 style="margin-top:20px;">FOLLOW US</h3>
           <div class="social-icons">
-              <a href="https://www.facebook.com/share/175n16vXSH/"><i class="fab fa-facebook-f"></i></a>
-              <a href="https://www.instagram.com/weekdays_properties_official/"><i class="fab fa-instagram"></i></a>
-              <a href="https://youtube.com/shorts/kZtyhUBwXU4?feature=share"><i class="fab fa-youtube"></i></a>
+              <a href="https://www.facebook.com/share/175n16vXSH/"><i class="bi bi-facebook"></i></a>
+              <a href="https://www.instagram.com/weekdays_properties_official/"><i class="bi bi-instagram"></i></a>
+              <a href="https://youtube.com/shorts/kZtyhUBwXU4?feature=share"><i class="bi bi-youtube"></i></a>
 
   
           </div>

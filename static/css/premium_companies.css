@@ -37,8 +37,9 @@
 }
 @media (max-width: 768px) {
   .company-premium-card {
-    min-width: 88%;
-    max-width: 88%;
+    min-width: 300px;
+    max-width: 92vw;
+    width: 92vw;
   }
 }
 
