@@ -24,6 +24,7 @@ body {
   max-width: 480px;
   margin: 0 auto;
   padding: 20px;
+  padding-top: 0;
   padding-bottom: 100px;
 }
 
@@ -34,7 +35,6 @@ body {
   padding: 28px;
   box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.1);
   position: relative;
-  margin-top: 60px;
 }
 
 .edit-btn {

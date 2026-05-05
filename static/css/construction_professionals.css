@@ -47,8 +47,22 @@
 
 @media (max-width: 768px) {
     .professional-card {
-        min-width: 85%;
-        max-width: 85%;
+        min-width: 280px;
+        max-width: 85vw;
+        width: 85vw;
+        padding: 15px;
+    }
+    .professional-card .stats-row {
+        flex-direction: column;
+        gap: 8px;
+    }
+    .professional-card .stat-box {
+        padding: 8px 12px;
+    }
+    .professional-card .stat-box .val {
+        font-size: 13px;
+        white-space: normal;
+        word-break: break-word;
     }
 }
 

@@ -1,4 +1,13 @@
 /* add_project.js */
+console.log("add_project.js loading...");
+
+// Fallback for CSS.escape if it doesn't exist
+if (!window.CSS || !window.CSS.escape) {
+  window.CSS = window.CSS || {};
+  window.CSS.escape = function(v) {
+    return v.replace(/([^\w\-])/g, "\\$1");
+  };
+}
 
 document.addEventListener("DOMContentLoaded", function () {
   // Image preview
@@ -131,7 +140,7 @@ function previewGenericMedia(input, previewId) {
         fileName.style.padding = "4px 8px";
         fileName.style.borderRadius = "4px";
         fileName.style.display = "inline-block";
-        fileName.innerHTML = `<i class="fa-solid fa-file"></i> ` + file.name;
+        fileName.innerHTML = `<i class="bi bi-file-earmark"></i> ` + file.name;
         previewContainer.appendChild(fileName);
       }
     });
@@ -156,7 +165,7 @@ function previewLegalDoc(input) {
     } else {
       const fileName = document.createElement("div");
       fileName.className = "file-name";
-      fileName.innerHTML = `<i class="fa-solid fa-file-pdf"></i> ` + file.name;
+      fileName.innerHTML = `<i class="bi bi-file-earmark-pdf"></i> ` + file.name;
       previewContainer.appendChild(fileName);
     }
   }
@@ -170,11 +179,11 @@ function addLegalDoc() {
     <div class="legal-doc-row" style="align-items: center; flex-wrap: wrap;">
       <input type="text" name="legal_doc_name[]" placeholder="Document Name" class="doc-name-input" required style="max-width: 220px;">
       <label class="upload-plus-btn" title="Upload Document" style="flex-shrink: 0;">
-        <i class="fa-solid fa-plus"></i>
+        <i class="bi bi-plus-lg"></i>
         <input type="file" name="legal_doc_file[]" class="doc-file-input" accept="image/*,application/pdf" onchange="previewLegalDoc(this)" required>
       </label>
       <div class="doc-preview" style="flex: 1; margin-top: 0; display: flex; gap: 10px;"></div>
-      <button type="button" class="remove-doc-btn" onclick="removeLegalDoc(this)" style="flex-shrink: 0;"><i class="fa-solid fa-trash"></i></button>
+      <button type="button" class="remove-doc-btn" onclick="removeLegalDoc(this)" style="flex-shrink: 0;"><i class="bi bi-trash"></i></button>
     </div>
   `;
   container.appendChild(div);
@@ -341,9 +350,20 @@ function validateFinalStep() {
   return valid;
 }
 
+window.goToStep = goToStep;
+window.addNearbyField = addNearbyField;
+window.removeField = removeField;
+window.addLegalDoc = addLegalDoc;
+window.removeLegalDoc = removeLegalDoc;
+window.previewGenericMedia = previewGenericMedia;
+window.previewLegalDoc = previewLegalDoc;
 window.initMap = initMap;
-window.onload = function() {
-    if (typeof google !== 'undefined') {
-        initMap();
-    }
-};
+
+// Robust map initialization
+if (typeof google !== 'undefined') {
+    initMap();
+} else {
+    window.addEventListener('load', function() {
+        if (typeof google !== 'undefined') initMap();
+    });
+}

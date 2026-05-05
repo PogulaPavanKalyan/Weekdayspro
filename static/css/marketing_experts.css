@@ -36,8 +36,24 @@
 }
 @media (max-width: 768px) {
   .expert-card {
-    min-width: 80%;
-    max-width: 80%;
+    min-width: 280px;
+    max-width: 85vw;
+    width: 85vw;
+    padding: 12px;
+  }
+  .expert-card .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 10px;
+  }
+  .expert-card .expert-header .profile-pic {
+    width: 45px;
+    height: 45px;
+  }
+  .expert-card .stats-grid .stat-item .details .val {
+    font-size: 12px;
+    white-space: normal;
+    word-break: break-word;
   }
 }
 

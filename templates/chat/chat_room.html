@@ -1,4 +1,4 @@
-<script>
+﻿<script>
 window.isChatPage = true;
 </script>
 {% load static %}
@@ -7,7 +7,7 @@ window.isChatPage = true;
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="shortcut icon" href="{% static 'images/logo.jpg' %}" type="image/x-icon">
+<link rel="shortcut icon" href="{% static 'images/fav-icon.png' %}" type="image/png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 <title>Chat with {{ other_user.username }}</title>
 
@@ -411,10 +411,12 @@ body {
 }
 
 /* ── Responsive ─────────────────────────────────── */
-@media (max-width: 768px) {
+@media (max-width: 1100px) {
   .chat-layout {
     padding: 0;
-    height: 100vh;
+    height: calc(100vh - 135px); /* Header + Bottom Nav */
+    margin-top: 0;
+    gap: 0;
   }
   .chat-inbox {
     display: none; /* Hide inbox on mobile chat room */
@@ -422,9 +424,12 @@ body {
   .chat-panel {
     border-radius: 0;
     border: none;
+    height: 100%;
   }
   .chat-header {
-    padding: 12px 16px;
+    padding: 10px 15px;
+    height: 60px;
+    flex-shrink: 0;
   }
   .back-btn {
     display: flex !important;

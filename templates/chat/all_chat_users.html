@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<link rel="shortcut icon" href="{% static 'images/weekfav.jpeg' %}" type="image/x-icon">
+<link rel="shortcut icon" href="{% static 'images/fav-icon.png' %}" type="image/png">
 <title>Available Users</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
@@ -192,12 +192,13 @@ body {
 }
 
 /* ── Responsive ───────────────────────────────────── */
-@media (max-width: 768px) {
+@media (max-width: 1100px) {
   .page-wrapper {
     padding: 15px;
   }
   .chat-container {
     border-radius: 18px;
+    margin-bottom: 70px;
   }
   .avatar {
     width: 44px;
@@ -265,7 +266,6 @@ body {
   </div>
 </div>
 
-{% include 'footer.html' %}
 
 <script>
 const searchInput = document.getElementById("userSearch");
@@ -293,15 +293,13 @@ searchInput.addEventListener("keyup", () => {
 // Apply filter
 function applyFilters() {
   const users = document.querySelectorAll(".chat-item");
-
   users.forEach(u => {
-    const plan = u.dataset.plan;
+    const plan = (u.dataset.plan || "").trim();
     const name = u.querySelector(".chat-name").innerText.toLowerCase();
-
     const planMatch = (activePlan === "all" || plan === activePlan);
     const nameMatch = name.includes(searchText);
-
-    u.style.display = (planMatch && nameMatch) ? "flex" : "none";
+    // Use "" to restore natural display instead of forcing "flex" on <li>
+    u.style.display = (planMatch && nameMatch) ? "" : "none";
   });
 }
 
@@ -312,10 +310,8 @@ function refreshUsers() {
     .then(html => {
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, 'text/html');
-
       const newList = doc.querySelector(".chat-list");
       const oldList = document.querySelector(".chat-list");
-
       if (newList && oldList) {
         oldList.innerHTML = newList.innerHTML;
         applyFilters();
@@ -326,5 +322,8 @@ function refreshUsers() {
 setInterval(refreshUsers, 3000);
 </script>
 
+{% include 'footer.html' %}
+
 </body>
+
 </html>

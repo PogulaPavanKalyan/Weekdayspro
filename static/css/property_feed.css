@@ -25,7 +25,7 @@
 .property-feed-card {
   min-width: 320px;
   max-width: 320px;
-  height: 450px; /* Increased to fit nearby places and larger image */
+  height: 450px;
   background: #FFFFFF;
   border: 1px solid #E5E7EB;
   border-radius: 16px;
@@ -35,6 +35,22 @@
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+}
+@media (max-width: 768px) {
+  .property-feed-card {
+    min-width: 260px;
+    max-width: 80vw;
+    width: 80vw;
+    height: auto;
+    min-height: 350px;
+  }
+  .property-feed-card .card-media {
+    height: 160px !important;
+  }
+  .property-feed-card .card-details-body {
+    height: auto !important;
+    min-height: 140px;
+  }
 }
 
 .property-feed-card .card-user-header {

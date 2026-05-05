@@ -4,14 +4,137 @@
 
 <head>
 
-  <link rel="shortcut icon" href="{% static 'images/weekfav.jpeg' %}" type="image/x-icon">
+  <link rel="shortcut icon" href="{% static 'images/fav-icon.png' %}" type="image/png">
 
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Add Project</title>
 
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
   <link rel="stylesheet" href="{% static 'css/add_project.css' %}" />
+  <script>
+    // Critical functions defined in head for immediate availability
+    function goToStep(stepNumber, requiredFields) {
+      function findField(identifier) {
+        if (!identifier) return null;
+        let el = document.getElementById(identifier);
+        if (el) return el;
+        el = document.querySelector('[name="' + identifier + '"]');
+        return el;
+      }
+      const currentStepEl = document.querySelector(".step.active") || document.querySelector(".step:not([style*='none'])");
+      if (!currentStepEl) return;
+      let toValidate = [];
+      if (Array.isArray(requiredFields) && requiredFields.length > 0) {
+        requiredFields.forEach(idOrName => {
+          const fld = findField(idOrName);
+          if (fld) toValidate.push(fld);
+        });
+      } else {
+        const requiredEls = currentStepEl.querySelectorAll("input[required], textarea[required], select[required]");
+        requiredEls.forEach(e => toValidate.push(e));
+      }
+      let valid = true;
+      let firstInvalid = null;
+      toValidate.forEach(field => {
+        if (field.disabled || field.type === "hidden" || field.offsetParent === null) return;
+        let empty = false;
+        if (field.type === "checkbox" || field.type === "radio") {
+          const group = document.querySelectorAll('[name="' + field.name + '"]');
+          let anyChecked = Array.from(group).some(g => g.checked);
+          if (!anyChecked) empty = true;
+        } else if (field.value.trim() === "") {
+          empty = true;
+        }
+        if (empty) {
+          valid = false;
+          field.style.border = "2px solid #e74c3c";
+          if (!firstInvalid) firstInvalid = field;
+        } else {
+          field.style.border = "";
+        }
+      });
+      if (!valid) {
+        if (firstInvalid) firstInvalid.focus();
+        return;
+      }
+      document.querySelectorAll(".step").forEach(s => s.classList.remove("active"));
+      const target = document.getElementById("step" + stepNumber);
+      if (target) {
+        target.classList.add("active");
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+
+    function addNearbyField() {
+      const container = document.getElementById("nearby-container");
+      const div = document.createElement("div");
+      div.className = "nearby-item";
+      div.innerHTML = `
+        <input type="text" name="nearby_locations[]" placeholder="e.g. Hospital (2 km)" required>
+        <button type="button" class="remove-nearby-btn" onclick="this.parentElement.remove()">✕</button>
+      `;
+      container.appendChild(div);
+    }
+
+    function addLegalDoc() {
+      const container = document.getElementById("legal-docs-container");
+      const div = document.createElement("div");
+      div.className = "legal-doc-item";
+      div.innerHTML = `
+        <div class="legal-doc-row" style="align-items: center; flex-wrap: wrap;">
+          <input type="text" name="legal_doc_name[]" placeholder="Document Name" class="doc-name-input" required style="max-width: 220px;">
+          <label class="upload-plus-btn">
+            <i class="bi bi-plus-lg"></i>
+            <input type="file" name="legal_doc_file[]" class="doc-file-input" accept="image/*,application/pdf" onchange="previewLegalDoc(this)" required>
+          </label>
+          <div class="doc-preview" style="flex: 1; margin-top: 0; display: flex; gap: 10px;"></div>
+          <button type="button" class="remove-doc-btn" onclick="this.closest('.legal-doc-item').remove()"><i class="bi bi-trash"></i></button>
+        </div>
+      `;
+      container.appendChild(div);
+    }
+
+    function previewLegalDoc(input) {
+      const previewContainer = input.closest('.legal-doc-item').querySelector('.doc-preview');
+      previewContainer.innerHTML = "";
+      if (input.files && input.files[0]) {
+        const file = input.files[0];
+        if (file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onload = e => {
+            const img = document.createElement("img");
+            img.src = e.target.result;
+            img.style.width = "40px";
+            img.style.height = "40px";
+            img.style.objectFit = "cover";
+            previewContainer.appendChild(img);
+          };
+          reader.readAsDataURL(file);
+        } else {
+          previewContainer.innerHTML = `<i class="bi bi-file-earmark-pdf" style="font-size: 24px;"></i>`;
+        }
+      }
+    }
+
+    function previewGenericMedia(input, previewId) {
+      const previewContainer = document.getElementById(previewId);
+      previewContainer.innerHTML = "";
+      Array.from(input.files).forEach(file => {
+        if (file.type.startsWith('video/')) {
+          previewContainer.innerHTML += `<i class="bi bi-play-btn" style="font-size: 24px;"></i> <span>${file.name}</span>`;
+        } else {
+          previewContainer.innerHTML += `<i class="bi bi-file-earmark" style="font-size: 24px;"></i> <span>${file.name}</span>`;
+        }
+      });
+    }
+
+    window.goToStep = goToStep;
+    window.addNearbyField = addNearbyField;
+    window.addLegalDoc = addLegalDoc;
+    window.previewLegalDoc = previewLegalDoc;
+    window.previewGenericMedia = previewGenericMedia;
+  </script>
 </head>
 
 <body>
@@ -57,7 +180,7 @@
 
               <div class="nearby-item">
                 <input type="text" name="nearby_locations[]" placeholder="e.g. School (1 km)" required>
-                <button type="button" class="remove-nearby-btn" onclick="removeField(this)"><i class="bi bi-trash"></i></button>
+                <button type="button" class="remove-nearby-btn" onclick="this.parentElement.remove()"><i class="bi bi-trash"></i></button>
               </div>
 
             </div>
@@ -178,7 +301,7 @@
             <div class="legal-doc-row" style="align-items: flex-start; flex-wrap: wrap;">
               <label class="upload-plus-btn" title="Upload Videos" style="flex-shrink: 0;">
                 <i class="bi bi-plus-lg"></i>
-                <input type="file" name="video" id="videoInput"  accept="video/*" onchange="previewGenericMedia(this, 'videoPreview')" required>
+                <input type="file" name="video" id="videoInput"  accept="video/*" onchange="previewGenericMedia(this, 'videoPreview')">
               </label>
               <div id="videoPreview" class="preview-box" style="flex: 1; margin-top: 0; justify-content: flex-start;"></div>
             </div>
@@ -190,7 +313,7 @@
             <div class="legal-doc-row" style="align-items: flex-start; flex-wrap: wrap;">
               <label class="upload-plus-btn" title="Upload Brochure" style="flex-shrink: 0;">
                 <i class="bi bi-plus-lg"></i>
-                <input type="file" name="document" id="docInput" multiple onchange="previewGenericMedia(this, 'docPreview')" required>
+                <input type="file" name="document" id="docInput" multiple onchange="previewGenericMedia(this, 'docPreview')">
               </label>
               <div id="docPreview" class="preview-box" style="flex: 1; margin-top: 0; justify-content: flex-start;"></div>
             </div>
@@ -225,11 +348,90 @@
     </div>
   </div>
 
+
+  <script>
+    // DOM-dependent logic
+    document.addEventListener("DOMContentLoaded", function () {
+      const imageInput = document.getElementById("imageInput");
+      if (imageInput) {
+        imageInput.addEventListener("change", function () {
+          const preview = document.getElementById("imagePreview");
+          preview.innerHTML = "";
+          if (this.files.length > 10) {
+            alert("You can upload maximum 10 images");
+            this.value = "";
+            return;
+          }
+          Array.from(this.files).forEach(file => {
+            const reader = new FileReader();
+            reader.onload = e => {
+              let img = document.createElement("img");
+              img.src = e.target.result;
+              preview.appendChild(img);
+            };
+            reader.readAsDataURL(file);
+          });
+        });
+      }
+      const positionSelect = document.getElementById("positionSelect");
+      if (positionSelect) {
+        positionSelect.addEventListener("change", function () {
+          const box = document.getElementById("constructionTimeBox");
+          const input = document.getElementById("constructionTimeInput");
+          if (this.value === "UNDER") {
+            box.style.display = "block";
+            input.required = true;
+          } else {
+            box.style.display = "none";
+            input.required = false;
+            input.value = "";
+          }
+        });
+      }
+    });
+
+    // Map logic
+    function initMap() {
+      const defaultLoc = { lat: 17.3850, lng: 78.4867 };
+      const mapEl = document.getElementById("map");
+      if (!mapEl) return;
+      const map = new google.maps.Map(mapEl, { center: defaultLoc, zoom: 13 });
+      const marker = new google.maps.Marker({ position: defaultLoc, map: map, draggable: true });
+      const searchInput = document.getElementById("search_location");
+      if (searchInput) {
+        const autocomplete = new google.maps.places.Autocomplete(searchInput);
+        autocomplete.addListener("place_changed", () => {
+          const place = autocomplete.getPlace();
+          if (!place.geometry) return;
+          map.setCenter(place.geometry.location);
+          marker.setPosition(place.geometry.location);
+          updateMapFields(place.geometry.location.lat(), place.geometry.location.lng(), place.formatted_address);
+        });
+      }
+      marker.addListener("dragend", () => {
+        const pos = marker.getPosition();
+        updateMapFields(pos.lat(), pos.lng());
+      });
+    }
+
+    function updateMapFields(lat, lng, addr = "") {
+      const latF = document.getElementById("id_latitude");
+      const lngF = document.getElementById("id_longitude");
+      const urlF = document.getElementById("id_location_url");
+      if(latF) latF.value = lat;
+      if(lngF) lngF.value = lng;
+      if(urlF) urlF.value = `https://www.google.com/maps?q=${lat},${lng}`;
+      if (addr) {
+        const pAddr = document.querySelector("input[name='project_address']");
+        if(pAddr) pAddr.value = addr;
+      }
+    }
+
+    window.initMap = initMap;
+  </script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB92MLJIMGxSEXfAgLGObcO0OpVV6w2VbY&libraries=places&callback=initMap" async defer></script>
+
   {% include 'footer.html' %}
-
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB92MLJIMGxSEXfAgLGObcO0OpVV6w2VbY&libraries=places"></script>
-  <script src="{% static 'js/add_project.js' %}"></script>
-
 
 </body>
 
